@@ -15,8 +15,6 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import com.google.api.client.util.ExponentialBackOff
-import com.nativedevps.GoogleAuthentication
-import com.nativedevps.drive.AuthenticationState
 import com.nativedevps.utility.getLastSignedAccount
 
 /*
@@ -29,7 +27,7 @@ open class GoogleAuthenticationProvider {
     private var signInInResult: ActivityResultLauncher<Intent>
 
 
-    constructor(activity: FragmentActivity,authContractor: AuthContractor) {
+    constructor(activity: FragmentActivity, authContractor: AuthContractor) {
         this.authContractor = authContractor
         signInInResult =
             activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
@@ -37,7 +35,7 @@ open class GoogleAuthenticationProvider {
             }
     }
 
-    constructor(fragment: Fragment,authContractor: AuthContractor) {
+    constructor(fragment: Fragment, authContractor: AuthContractor) {
         this.authContractor = authContractor
         signInInResult =
             fragment.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
@@ -74,6 +72,7 @@ open class GoogleAuthenticationProvider {
      **/
     fun signIn(
         signOut: Boolean = true,
+        clientId: String? = null,
         callback: ((SignInModel) -> Unit),
     ) {
         connectivityEvent = callback
@@ -85,7 +84,7 @@ open class GoogleAuthenticationProvider {
             callback(SignInModel(error = "account already connected"))
             connectivityEvent = null
         } ?: run {
-            signInInResult.launch(getSignInIntent().signInIntent)
+            signInInResult.launch(getSignInIntent(clientId).signInIntent)
         }
     }
 
@@ -100,16 +99,24 @@ open class GoogleAuthenticationProvider {
         }
     }
 
-    private fun getSignInIntent(): GoogleSignInClient {
+    private fun getSignInIntent(clientId: String? = null): GoogleSignInClient {
         val gso = GoogleSignInOptions.Builder(
             GoogleSignInOptions.DEFAULT_SIGN_IN
-        )
-            .requestEmail()
+        ).apply {
+            if (clientId != null) {
+                requestIdToken(clientId)
+            }
+        }.requestEmail()
             .build()
         return GoogleSignIn.getClient(authContractor.retrieveActivity(), gso)
     }
 
-    fun getCredentials(list: List<String>): GoogleAccountCredential? {
+    fun getGoogleAccountCredential(
+        list: List<String> = listOf(
+            "https://www.googleapis.com/auth/userinfo.email",
+            "https://www.googleapis.com/auth/userinfo.profile"
+        ),
+    ): GoogleAccountCredential? {
         return GoogleSignIn.getLastSignedInAccount(authContractor.retrieveActivity())?.let {
             GoogleAccountCredential.usingOAuth2(
                 authContractor.retrieveActivity(), list
