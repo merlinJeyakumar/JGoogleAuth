@@ -62,8 +62,9 @@ open class GoogleAuthenticationProvider {
                 }
             }
         } else {
-            connectivityEvent?.invoke(SignInModel(error = "action cancelled"))
-            Log.d("RESULT_CANCELED", "Cancelled")
+            val account = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            connectivityEvent?.invoke(SignInModel(error = account.exception?.message?:"unknown failure with google login"))
+            account.exception?.printStackTrace()
         }
     }
 
