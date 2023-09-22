@@ -40,11 +40,14 @@ fun List<ValueRange>.toColumn(): MutableList<List<CellModel>> {
 
         val returnList = mutableListOf<CellModel>()
         for ((index, item) in (valueRange?.getValues()?.getOrNull(0) ?: listOf()).withIndex()) {
-            returnList.add(CellModel(
-                cellRow = cellPlace.toCellRow(),
-                cellColumn = cellPlace.toCellColumn(index),
-                cellSheet = cellPlace.toCellSheet(),
-                value = item.toString()))
+            returnList.add(
+                CellModel(
+                    cellRow = cellPlace.toCellRow(),
+                    cellColumn = cellPlace.toCellColumn(index),
+                    cellSheet = cellPlace.toCellSheet(),
+                    value = item.toString()
+                )
+            )
         }
         if (returnList.isNotEmpty()) {
             cellModelList.add(returnList)
@@ -60,11 +63,14 @@ fun List<ValueRange>.toCells(): MutableList<CellModel> {
             val cellPlace = it.range
             val value = it.getValues()?.get(0)?.get(0)?.toString()
             value?.let { it1 ->
-                cellModelList.add(CellModel(
-                    cellRow = cellPlace.toCellRow(),
-                    cellColumn = cellPlace.toCellColumn(),
-                    cellSheet = cellPlace.toCellSheet(),
-                    value = it1))
+                cellModelList.add(
+                    CellModel(
+                        cellRow = cellPlace.toCellRow(),
+                        cellColumn = cellPlace.toCellColumn(),
+                        cellSheet = cellPlace.toCellSheet(),
+                        value = it1
+                    )
+                )
             }
         }
     }
@@ -79,7 +85,7 @@ fun String.toCellColumn(index: Int = -1): String {
     return this.substr(indexOf("!") + 1, 1).run {
         if (index != -1) {
             columnAddress(columnNumber(this) + index)
-        }else{
+        } else {
             this
         }
     }
@@ -102,9 +108,10 @@ fun List<Any>.asColumn(): MutableList<List<Any>> {
 }
 
 fun AppendValuesResponse.appendedRange(): List<Pair<Any, String>> {
-    updates.updatedData.range
+    val range =
+        updates.updatedData.range //todo: Expenses!A3:G6 its getting wrong as A3,B4,C5,D6 expected A1 A2 A3 A4
 
-    val range = updates.updatedData.range
+    /*val range = updates.updatedData.range
     val sheetNameEnd = range.indexOf("!")
     val columnEnd = range.indexOf(":", sheetNameEnd)
     val withColumn = if (columnEnd == -1) {
@@ -116,7 +123,8 @@ fun AppendValuesResponse.appendedRange(): List<Pair<Any, String>> {
 
     return updates.updatedData.getValues().mapIndexed { index, anies ->
         anies[0] to "${range.toCellSheet()}!${range.toCellColumn(index)}${rowIndex + index}"
-    }
+    }*/
+    return range.extractRowsWithColumns().map { Unit to it }
 }
 
 fun JSpreadsheet.updateOnSheet(
@@ -126,9 +134,11 @@ fun JSpreadsheet.updateOnSheet(
     return sheets
         .Spreadsheets()
         .values()
-        .batchUpdate(sheetId, BatchUpdateValuesRequest()
-            .setValueInputOption("USER_ENTERED")
-            .setData(valueRange))
+        .batchUpdate(
+            sheetId, BatchUpdateValuesRequest()
+                .setValueInputOption("USER_ENTERED")
+                .setData(valueRange)
+        )
         .execute()
 }
 
@@ -157,4 +167,26 @@ fun columnNumber(colAddress: String): Int {
         mul *= 26
     }
     return res
+}
+
+fun String.extractRowsWithColumns(): MutableList<String> {
+    val regex = """(.+)!([A-Z]+)(\d+):([A-Z]+)(\d+)""".toRegex()
+    val matchResult = regex.find(this)
+
+    if (matchResult != null) {
+        val (sheetName, startColumn, startRow, _, endRow) = matchResult.destructured
+
+        val rows = mutableListOf<String>()
+
+        val startRowNum = startRow.toInt()
+        val endRowNum = endRow.toInt()
+
+        for (rowNum in startRowNum..endRowNum) {
+            rows.add("$sheetName!$startColumn$rowNum")
+        }
+
+        return rows
+    } else {
+        throw IllegalArgumentException("Invalid range format: $this")
+    }
 }
