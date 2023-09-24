@@ -190,3 +190,14 @@ fun String.extractRowsWithColumns(): MutableList<String> {
         throw IllegalArgumentException("Invalid range format: $this")
     }
 }
+
+/*
+ =Accounts!A3
+ =AccountTypes!B3
+ =AccountTypes!C2
+ =AccountTypes!Z100
+ =Recurring!Z1
+*/
+fun String.isValidCellLocation(): Boolean {
+    return "^=\\w+![A-Z]+\\d+\$".toRegex().matches(this)
+}
